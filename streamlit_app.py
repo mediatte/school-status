@@ -412,6 +412,13 @@ if st.session_state.timetable:
         st.markdown("<div class='content-card'>", unsafe_allow_html=True)
         st.markdown("<div class='card-title'>급식</div>", unsafe_allow_html=True)
         
+        # 디버깅
+        st.write(f"현재 날짜: {current_date.strftime('%Y-%m-%d')}")
+        st.write(f"day_key (문자열): '{str(current_date.day)}'")
+        st.write(f"meal_data 있음?: {st.session_state.meal_data is not None}")
+        if st.session_state.meal_data:
+            st.write(f"meal_data의 키들: {list(st.session_state.meal_data.keys())}")
+        
         # 날짜 키를 문자열로 변환하여 확인
         day_key = str(current_date.day)
         
