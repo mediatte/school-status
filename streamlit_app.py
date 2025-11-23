@@ -412,15 +412,11 @@ if st.session_state.timetable:
         st.markdown("<div class='content-card'>", unsafe_allow_html=True)
         st.markdown("<div class='card-title'>급식</div>", unsafe_allow_html=True)
         
-        # 디버깅 정보
-        st.write("DEBUG - meal_data:", st.session_state.meal_data)
-        st.write("DEBUG - current_date.day:", current_date.day)
-        if st.session_state.meal_data:
-            st.write("DEBUG - meal_data keys:", st.session_state.meal_data.keys())
+        # 날짜 키를 문자열로 변환하여 확인
+        day_key = str(current_date.day)
         
-        if st.session_state.meal_data and current_date.day in st.session_state.meal_data:
-            meals = st.session_state.meal_data[current_date.day]
-            st.write("DEBUG - meals for this day:", meals)
+        if st.session_state.meal_data and day_key in st.session_state.meal_data:
+            meals = st.session_state.meal_data[day_key]
             
             meal_types = {
                 "breakfast": ("조식", "#ffd93d"),
@@ -428,19 +424,26 @@ if st.session_state.timetable:
                 "dinner": ("석식", "#6c5ce7")
             }
             
+            meal_displayed = False
             for meal_type, (meal_label, meal_color) in meal_types.items():
                 if meal_type in meals:
                     meal_info = meals[meal_type]
                     menu = meal_info.get("menu", "")
                     calories = meal_info.get("calories", "")
                     
-                    st.markdown(f"""
-                    <div class='meal-card'>
-                        <div class='meal-type'>{meal_label}</div>
-                        <div class='meal-menu'>{menu.replace(chr(10), '<br>')}</div>
-                        {f"<div class='meal-info'>🔥 {calories}</div>" if calories else ""}
-                    </div>
-                    """, unsafe_allow_html=True)
+                    if menu:
+                        meal_displayed = True
+                        st.markdown(f"""
+                        <div class='meal-card'>
+                            <div class='meal-type'>{meal_label}</div>
+                            <div class='meal-menu'>{menu.replace(chr(10), '<br>')}</div>
+                            {f"<div class='meal-info'>{calories}</div>" if calories else ""}
+                        </div>
+                        """, unsafe_allow_html=True)
+            
+            if not meal_displayed:
+                st.markdown("<div class='meal-card'><div class='meal-menu'>급식 정보가 없습니다</div></div>", 
+                           unsafe_allow_html=True)
         else:
             st.markdown("<div class='meal-card'><div class='meal-menu'>급식 정보가 없습니다</div></div>", 
                        unsafe_allow_html=True)
