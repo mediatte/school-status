@@ -17,7 +17,7 @@ st.markdown("""
     /* 메인 배경 */
     .main {
         background-color: #000000;
-        padding: 10px 5px;
+        padding: 15px 10px;
     }
     .stApp {
         background-color: #000000;
@@ -27,52 +27,52 @@ st.markdown("""
     .main-title {
         text-align: center;
         color: #ffffff;
-        font-size: 1.5rem;
+        font-size: 1.6rem;
         font-weight: bold;
-        margin: 10px 0;
+        margin: 15px 0;
         letter-spacing: 2px;
     }
     
     /* 날짜 네비게이션 */
     .date-nav {
         background: #1a1a1a;
-        padding: 12px;
+        padding: 15px;
         border-radius: 12px;
-        margin: 10px 0;
+        margin: 15px 0;
         box-shadow: 0 4px 20px rgba(255, 255, 255, 0.05);
     }
     
     .date-display {
         text-align: center;
         color: #ffffff;
-        font-size: 1.2rem;
+        font-size: 1.3rem;
         font-weight: bold;
-        margin: 6px 0;
+        margin: 8px 0;
     }
     
     .weekday {
         text-align: center;
         color: #888888;
-        font-size: 0.9rem;
-        margin-bottom: 8px;
+        font-size: 0.95rem;
+        margin-bottom: 10px;
     }
     
     /* 컨텐츠 카드 */
     .content-card {
         background: #1a1a1a;
-        padding: 15px;
+        padding: 20px;
         border-radius: 12px;
-        margin: 10px 0;
+        margin: 15px 0;
         box-shadow: 0 4px 20px rgba(255, 255, 255, 0.05);
         border: 1px solid #2a2a2a;
     }
     
     .card-title {
         color: #ffffff;
-        font-size: 1.1rem;
+        font-size: 1.2rem;
         font-weight: bold;
-        margin-bottom: 12px;
-        padding-bottom: 10px;
+        margin-bottom: 15px;
+        padding-bottom: 12px;
         border-bottom: 2px solid #333333;
     }
     
@@ -80,79 +80,97 @@ st.markdown("""
     .timetable-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 8px;
+        gap: 10px;
         margin-top: 10px;
     }
     
     .class-card {
         background: #2a2a2a;
-        padding: 8px;
-        border-radius: 6px;
-        border-left: 2px solid #667eea;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid #3a3a3a;
         transition: all 0.3s;
-        font-size: 0.7rem;
     }
     
     .class-card:hover {
         background: #333333;
-        transform: translateY(-2px);
+        border-color: #667eea;
         box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
     }
     
     .class-number {
         color: #667eea;
-        font-size: 0.85rem;
+        font-size: 0.9rem;
         font-weight: bold;
-        margin-bottom: 6px;
-        padding-bottom: 4px;
+        margin-bottom: 8px;
+        text-align: center;
+        padding-bottom: 6px;
+        border-bottom: 2px solid #3a3a3a;
+    }
+    
+    .schedule-table {
+        width: 100%;
+        font-size: 0.7rem;
+    }
+    
+    .schedule-table tr {
         border-bottom: 1px solid #3a3a3a;
     }
     
-    .period-item {
-        color: #cccccc;
-        font-size: 0.65rem;
-        padding: 2px 0;
-        line-height: 1.3;
+    .schedule-table tr:last-child {
+        border-bottom: none;
     }
     
-    .subject {
+    .schedule-table td {
+        padding: 4px 2px;
+        color: #cccccc;
+    }
+    
+    .period-num {
+        color: #667eea;
+        font-weight: bold;
+        width: 20px;
+        text-align: center;
+    }
+    
+    .subject-name {
         color: #ffffff;
         font-weight: 500;
     }
     
-    .teacher {
+    .teacher-name {
         color: #888888;
-        font-size: 0.6rem;
-        margin-left: 2px;
+        font-size: 0.65rem;
+        text-align: right;
     }
     
     /* 급식 */
     .meal-card {
         background: #2a2a2a;
-        padding: 12px;
-        border-radius: 8px;
-        margin: 8px 0;
-        border-left: 2px solid #ff6b6b;
+        padding: 15px;
+        border-radius: 10px;
+        margin: 12px 0;
+        border-left: 3px solid #ff6b6b;
     }
     
     .meal-type {
         color: #ff6b6b;
-        font-size: 0.9rem;
+        font-size: 1rem;
         font-weight: bold;
-        margin-bottom: 6px;
+        margin-bottom: 8px;
     }
     
     .meal-menu {
         color: #cccccc;
-        font-size: 0.75rem;
-        line-height: 1.5;
+        font-size: 0.85rem;
+        line-height: 1.6;
     }
     
     .meal-info {
         color: #888888;
-        font-size: 0.7rem;
-        margin-top: 6px;
-        padding-top: 6px;
+        font-size: 0.75rem;
+        margin-top: 8px;
+        padding-top: 8px;
         border-top: 1px solid #3a3a3a;
     }
     
@@ -161,10 +179,10 @@ st.markdown("""
         background-color: #2a2a2a;
         color: #ffffff;
         border: 1px solid #3a3a3a;
-        border-radius: 8px;
-        padding: 6px 12px;
+        border-radius: 10px;
+        padding: 8px 16px;
         font-weight: 500;
-        font-size: 0.85rem;
+        font-size: 0.9rem;
         transition: all 0.3s;
     }
     
@@ -360,8 +378,9 @@ if st.session_state.timetable:
                         day_schedule = class_data[tt_day_idx]
                         
                         if day_schedule and len(day_schedule) > 0:
-                            schedule_html = f"<div class='class-card'>"
+                            schedule_html = "<div class='class-card'>"
                             schedule_html += f"<div class='class-number'>{class_num}반</div>"
+                            schedule_html += "<table class='schedule-table'>"
                             
                             for period_data in day_schedule:
                                 if period_data and hasattr(period_data, 'subject'):
@@ -371,12 +390,13 @@ if st.session_state.timetable:
                                     
                                     # 7교시까지만 표시하고 빈 교시는 제외
                                     if period_num <= 7 and subject.strip():
-                                        schedule_html += f"<div class='period-item'>"
-                                        schedule_html += f"<span class='subject'>{period_num}. {subject}</span> "
-                                        schedule_html += f"<span class='teacher'>({teacher})</span>"
-                                        schedule_html += f"</div>"
+                                        schedule_html += "<tr>"
+                                        schedule_html += f"<td class='period-num'>{period_num}</td>"
+                                        schedule_html += f"<td class='subject-name'>{subject}</td>"
+                                        schedule_html += f"<td class='teacher-name'>{teacher}</td>"
+                                        schedule_html += "</tr>"
                             
-                            schedule_html += "</div>"
+                            schedule_html += "</table></div>"
                             st.markdown(schedule_html, unsafe_allow_html=True)
                 except:
                     pass
