@@ -1,9 +1,10 @@
 import streamlit as st
 import pycomcigan
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 from neis_meal import NeisAPI
 import re
+import calendar
 
 # 페이지 설정
 st.set_page_config(
@@ -22,12 +23,117 @@ st.markdown("""
     .stApp {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     }
-    .content-box {
+    .main-title {
+        text-align: center;
+        color: white;
+        font-size: clamp(1.5rem, 5vw, 3rem);
+        font-weight: bold;
+        margin: 20px 0;
+        white-space: nowrap;
+    }
+    .calendar-container {
         background: white;
         padding: 20px;
         border-radius: 15px;
-        margin: 10px 0;
+        margin: 20px 0;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    .calendar-header {
+        text-align: center;
+        color: #667eea;
+        font-size: 1.8em;
+        font-weight: bold;
+        margin-bottom: 20px;
+    }
+    .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 10px;
+        margin-top: 10px;
+    }
+    .day-header {
+        text-align: center;
+        font-weight: bold;
+        color: #667eea;
+        padding: 10px;
+        background: #f0f2f6;
+        border-radius: 8px;
+    }
+    .day-header.sunday {
+        color: #ff6b6b;
+    }
+    .day-header.saturday {
+        color: #4dabf7;
+    }
+    .day-cell {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 10px;
+        min-height: 120px;
+        border: 2px solid #e9ecef;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    .day-cell:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        border-color: #667eea;
+    }
+    .day-cell.today {
+        border-color: #667eea;
+        background: #e7f5ff;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    .day-cell.weekend {
+        background: #f1f3f5;
+    }
+    .day-cell.other-month {
+        opacity: 0.3;
+    }
+    .day-number {
+        font-weight: bold;
+        font-size: 1.1em;
+        color: #495057;
+        margin-bottom: 5px;
+    }
+    .day-cell.today .day-number {
+        color: #667eea;
+    }
+    .day-content {
+        font-size: 0.85em;
+        color: #666;
+        line-height: 1.4;
+    }
+    .meal-indicator {
+        background: #ffe3e3;
+        color: #ff6b6b;
+        padding: 3px 6px;
+        border-radius: 4px;
+        font-size: 0.75em;
+        display: inline-block;
+        margin: 2px 0;
+    }
+    .class-indicator {
+        background: #e3f2ff;
+        color: #667eea;
+        padding: 3px 6px;
+        border-radius: 4px;
+        font-size: 0.75em;
+        display: inline-block;
+        margin: 2px 0;
+    }
+    .detail-box {
+        background: white;
+        padding: 20px;
+        border-radius: 15px;
+        margin: 20px 0;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    .detail-title {
+        color: #667eea;
+        font-size: 1.5em;
+        font-weight: bold;
+        margin-bottom: 15px;
     }
     .class-box {
         background: #f8f9fa;
@@ -36,39 +142,12 @@ st.markdown("""
         margin: 10px 0;
         border-left: 4px solid #667eea;
     }
-    .class-header {
-        color: #667eea;
-        font-weight: bold;
-        font-size: 1.1em;
-        margin-bottom: 10px;
-    }
-    .period-item {
-        padding: 5px 0;
-        border-bottom: 1px solid #eee;
-    }
-    .period-item:last-child {
-        border-bottom: none;
-    }
     .meal-box {
-        background: white;
-        padding: 20px;
-        border-radius: 15px;
+        background: #fff5f5;
+        padding: 15px;
+        border-radius: 10px;
         margin: 10px 0;
-        border-left: 5px solid #ff6b6b;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    }
-    .meal-header {
-        color: #ff6b6b;
-        font-weight: bold;
-        font-size: 1.2em;
-        margin-bottom: 10px;
-    }
-    .meal-menu {
-        line-height: 1.8;
-        color: #333;
-    }
-    h1, h2, h3 {
-        color: white;
+        border-left: 4px solid #ff6b6b;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -86,35 +165,46 @@ if 'last_update' not in st.session_state:
     st.session_state.last_update = None
 if 'initialized' not in st.session_state:
     st.session_state.initialized = False
+if 'current_month' not in st.session_state:
+    st.session_state.current_month = datetime.now().month
+if 'current_year' not in st.session_state:
+    st.session_state.current_year = datetime.now().year
+if 'selected_date' not in st.session_state:
+    st.session_state.selected_date = None
 
 # 타이틀
-col1, col2, col3 = st.columns([2, 1, 2])
-with col2:
-    st.markdown("# 📚 학교 현황")
+st.markdown("<h1 class='main-title'>📚 학교 현황</h1>", unsafe_allow_html=True)
 
 # 상단 설정 바
-col1, col2, col3 = st.columns([2, 1, 1])
+col1, col2, col3, col4 = st.columns([3, 1, 1, 1])
 with col1:
     school_name = st.text_input("🏫 학교명", value=st.session_state.school_name, 
                                 key="school_input",
-                                placeholder="학교명을 입력하세요")
+                                placeholder="학교명을 입력하세요",
+                                label_visibility="collapsed")
     if school_name:
         st.session_state.school_name = school_name
 
 with col2:
     grade = st.selectbox("📖 학년", [1, 2, 3], 
                         index=st.session_state.grade - 1,
-                        key="grade_select")
+                        key="grade_select",
+                        label_visibility="collapsed")
     st.session_state.grade = grade
 
 with col3:
-    st.write("")
-    st.write("")
+    # 월 선택
+    month = st.selectbox("📅 월", list(range(1, 13)),
+                        index=st.session_state.current_month - 1,
+                        format_func=lambda x: f"{x}월",
+                        label_visibility="collapsed")
+    st.session_state.current_month = month
+
+with col4:
     if st.button("🔄 새로고침", use_container_width=True, type="primary"):
         st.session_state.initialized = False
+        st.cache_data.clear()
         st.rerun()
-
-st.markdown("---")
 
 # 데이터 로딩 함수
 @st.cache_data(ttl=600)
@@ -123,12 +213,11 @@ def load_timetable(school_name, week_num=0):
     try:
         return pycomcigan.TimeTable(school_name, week_num=week_num)
     except Exception as e:
-        st.error(f"시간표 로드 실패: {str(e)}")
         return None
 
 @st.cache_data(ttl=600)
-def load_meals(school_name):
-    """급식 로드"""
+def load_meals_monthly(school_name, year, month):
+    """월간 급식 로드"""
     try:
         neis_api = NeisAPI()
         clean_name = re.sub(r'\s*\([^)]*\)', '', school_name).strip()
@@ -138,143 +227,228 @@ def load_meals(school_name):
             school = schools[0]
             school_code = school.get("SD_SCHUL_CODE", "")
             atpt_code = school.get("ATPT_OFCDC_SC_CODE", "")
-            return neis_api.get_week_meal(school_code, atpt_code)
+            return neis_api.get_meal(school_code, atpt_code, year, month)
         return None
     except Exception as e:
-        st.error(f"급식 로드 실패: {str(e)}")
         return None
 
 # 초기 데이터 로드
 if not st.session_state.initialized and st.session_state.school_name:
     with st.spinner("데이터를 불러오는 중..."):
         st.session_state.timetable = load_timetable(st.session_state.school_name)
-        st.session_state.meal_data = load_meals(st.session_state.school_name)
+        st.session_state.meal_data = load_meals_monthly(
+            st.session_state.school_name, 
+            st.session_state.current_year, 
+            st.session_state.current_month
+        )
         st.session_state.last_update = datetime.now()
         st.session_state.initialized = True
 
+# 달력 생성 함수
+def create_calendar_view(year, month, timetable, meal_data, grade):
+    """달력 형태의 UI 생성"""
+    
+    # 달력 헤더
+    st.markdown(f"""
+    <div class='calendar-container'>
+        <div class='calendar-header'>{year}년 {month}월</div>
+    """, unsafe_allow_html=True)
+    
+    # 요일 헤더
+    weekdays = ['일', '월', '화', '수', '목', '금', '토']
+    cols = st.columns(7)
+    for idx, day in enumerate(weekdays):
+        with cols[idx]:
+            if idx == 0:  # 일요일
+                st.markdown(f"<div class='day-header sunday'>{day}</div>", unsafe_allow_html=True)
+            elif idx == 6:  # 토요일
+                st.markdown(f"<div class='day-header saturday'>{day}</div>", unsafe_allow_html=True)
+            else:
+                st.markdown(f"<div class='day-header'>{day}</div>", unsafe_allow_html=True)
+    
+    # 달력 날짜 계산
+    cal = calendar.monthcalendar(year, month)
+    today = datetime.now()
+    
+    for week in cal:
+        cols = st.columns(7)
+        for idx, day in enumerate(week):
+            with cols[idx]:
+                if day == 0:
+                    # 빈 날짜
+                    st.markdown("<div class='day-cell other-month'></div>", unsafe_allow_html=True)
+                else:
+                    # 날짜 객체 생성
+                    date = datetime(year, month, day)
+                    weekday = date.weekday()  # 0=월요일
+                    
+                    # 클래스 결정
+                    classes = ['day-cell']
+                    if date.date() == today.date():
+                        classes.append('today')
+                    if weekday >= 5:  # 토요일, 일요일
+                        classes.append('weekend')
+                    
+                    # 요일 인덱스 (pycomcigan: 1=월, 2=화, ...)
+                    tt_day_idx = weekday + 1 if weekday < 5 else None
+                    
+                    # 시간표 정보
+                    has_timetable = False
+                    first_class = ""
+                    if timetable and tt_day_idx and weekday < 5:  # 평일만
+                        try:
+                            grade_data = timetable.timetable[grade]
+                            if grade_data and len(grade_data) > 1:
+                                class_data = grade_data[1]  # 1반 대표로
+                                if tt_day_idx < len(class_data):
+                                    day_schedule = class_data[tt_day_idx]
+                                    if day_schedule and len(day_schedule) > 0:
+                                        has_timetable = True
+                                        first_period = day_schedule[0]
+                                        if hasattr(first_period, 'subject'):
+                                            first_class = first_period.subject[:4]
+                        except:
+                            pass
+                    
+                    # 급식 정보
+                    has_meal = False
+                    if meal_data and day in meal_data:
+                        day_meals = meal_data[day]
+                        if day_meals and 'lunch' in day_meals:
+                            has_meal = True
+                    
+                    # 버튼으로 날짜 표시
+                    button_label = f"{day}일"
+                    if has_timetable:
+                        button_label += f"\n📚 {first_class}"
+                    if has_meal:
+                        button_label += "\n🍽️"
+                    
+                    if st.button(button_label, key=f"day_{year}_{month}_{day}", 
+                               use_container_width=True, 
+                               type="primary" if date.date() == today.date() else "secondary"):
+                        st.session_state.selected_date = date
+                        st.rerun()
+    
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# 선택된 날짜의 상세 정보 표시
+def show_date_details(date, timetable, meal_data, grade):
+    """선택된 날짜의 상세 시간표와 급식 표시"""
+    
+    weekday = date.weekday()
+    weekday_name = ['월', '화', '수', '목', '금', '토', '일'][weekday]
+    
+    st.markdown(f"""
+    <div class='detail-box'>
+        <div class='detail-title'>{date.strftime('%Y년 %m월 %d일')} ({weekday_name}요일)</div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    if weekday >= 5:  # 주말
+        st.info("📅 주말입니다.")
+        return
+    
+    col1, col2 = st.columns([3, 1])
+    
+    # 시간표
+    with col1:
+        st.markdown("<div class='detail-box'><h3 style='color: #667eea;'>📚 시간표</h3></div>", 
+                   unsafe_allow_html=True)
+        
+        tt_day_idx = weekday + 1  # pycomcigan 인덱스
+        
+        try:
+            grade_data = timetable.timetable[grade]
+            max_classes = len(grade_data)
+            
+            # 4개씩 열로 표시
+            for row_start in range(1, max_classes + 1, 4):
+                cols = st.columns(min(4, max_classes - row_start + 1))
+                
+                for col_idx, col in enumerate(cols):
+                    class_num = row_start + col_idx
+                    if class_num <= max_classes:
+                        with col:
+                            st.markdown(f"<div class='class-box'><strong>{class_num}반</strong><br>", 
+                                      unsafe_allow_html=True)
+                            
+                            try:
+                                class_data = grade_data[class_num]
+                                if tt_day_idx < len(class_data):
+                                    day_schedule = class_data[tt_day_idx]
+                                    
+                                    if day_schedule:
+                                        schedule_html = ""
+                                        for period_data in day_schedule:
+                                            if period_data and hasattr(period_data, 'subject'):
+                                                subject = period_data.subject
+                                                teacher = period_data.teacher
+                                                period_num = period_data.period
+                                                schedule_html += f"{period_num}. {subject} ({teacher})<br>"
+                                        
+                                        st.markdown(schedule_html + "</div>", unsafe_allow_html=True)
+                                    else:
+                                        st.markdown("시간표 없음</div>", unsafe_allow_html=True)
+                            except:
+                                st.markdown("데이터 없음</div>", unsafe_allow_html=True)
+        except Exception as e:
+            st.error(f"시간표를 불러올 수 없습니다: {str(e)}")
+    
+    # 급식
+    with col2:
+        st.markdown("<div class='detail-box'><h3 style='color: #ff6b6b;'>🍽️ 급식</h3></div>", 
+                   unsafe_allow_html=True)
+        
+        if meal_data and date.day in meal_data:
+            day_meals = meal_data[date.day]
+            
+            meal_types = {
+                "breakfast": ("🌅 조식", "#ffd93d"),
+                "lunch": ("☀️ 중식", "#ff6b6b"),
+                "dinner": ("🌙 석식", "#6c5ce7")
+            }
+            
+            for meal_type, (meal_label, meal_color) in meal_types.items():
+                if meal_type in day_meals:
+                    meal_info = day_meals[meal_type]
+                    menu = meal_info.get("menu", "")
+                    calories = meal_info.get("calories", "")
+                    
+                    st.markdown(f"""
+                    <div class="meal-box">
+                        <strong style="color: {meal_color};">{meal_label}</strong><br>
+                        {menu.replace(chr(10), '<br>')}<br>
+                        {f'<small>🔥 {calories}</small>' if calories else ''}
+                    </div>
+                    """, unsafe_allow_html=True)
+        else:
+            st.info("급식 정보가 없습니다.")
+
 # 메인 컨텐츠
-if st.session_state.timetable and st.session_state.meal_data:
-    # 마지막 업데이트 시간
+if st.session_state.timetable:
+    # 마지막 업데이트
     if st.session_state.last_update:
-        st.markdown(f"<p style='text-align: center; color: white;'>마지막 업데이트: {st.session_state.last_update.strftime('%Y-%m-%d %H:%M:%S')}</p>", 
+        st.markdown(f"<p style='text-align: center; color: white; font-size: 0.9em;'>마지막 업데이트: {st.session_state.last_update.strftime('%Y-%m-%d %H:%M:%S')}</p>", 
                    unsafe_allow_html=True)
     
-    # 요일 탭 (월~금)
-    days = ["월요일", "화요일", "수요일", "목요일", "금요일"]
-    day_keys = ["월", "화", "수", "목", "금"]
+    # 달력 표시
+    create_calendar_view(
+        st.session_state.current_year,
+        st.session_state.current_month,
+        st.session_state.timetable,
+        st.session_state.meal_data,
+        st.session_state.grade
+    )
     
-    # 이번 주 날짜 계산
-    from datetime import timedelta
-    today = datetime.now()
-    weekday = today.weekday()  # 0=월요일
-    monday = today - timedelta(days=weekday)
-    week_dates = [monday + timedelta(days=i) for i in range(5)]
-    
-    tabs = st.tabs([f"{day} ({date.strftime('%m/%d')})" for day, date in zip(days, week_dates)])
-    
-    timetable = st.session_state.timetable
-    meal_data = st.session_state.meal_data
-    
-    # pycomcigan 인덱스: 0=비어있음, 1=월요일, 2=화요일, ...
-    for tab_idx, (tab, day_key, date) in enumerate(zip(tabs, day_keys, week_dates)):
-        with tab:
-            day_idx = tab_idx + 1  # pycomcigan 인덱스 조정
-            # 2열 레이아웃: 시간표 | 급식
-            col_timetable, col_meal = st.columns([3, 1])
-            
-            # 시간표 영역
-            with col_timetable:
-                st.markdown(f"<div class='content-box'><h2 style='color: #667eea;'>{days[tab_idx]} 시간표</h2></div>", 
-                           unsafe_allow_html=True)
-                
-                try:
-                    grade_timetable = timetable.timetable[st.session_state.grade]
-                    
-                    # 모든 반의 시간표를 4개씩 열로 표시
-                    max_classes = len(grade_timetable)
-                    
-                    for row_start in range(1, max_classes + 1, 4):
-                        cols = st.columns(min(4, max_classes - row_start + 1))
-                        
-                        for col_idx, col in enumerate(cols):
-                            class_num = row_start + col_idx
-                            if class_num <= max_classes:
-                                with col:
-                                    st.markdown(f"<div class='class-box'><div class='class-header'>{class_num}반</div>", 
-                                              unsafe_allow_html=True)
-                                    
-                                    try:
-                                        class_schedule = grade_timetable[class_num]
-                                        if day_idx < len(class_schedule):
-                                            day_schedule = class_schedule[day_idx]
-                                            
-                                            if day_schedule:
-                                                schedule_html = ""
-                                                for period_data in day_schedule:
-                                                    if period_data:
-                                                        # TimeTableData 객체에서 정보 추출
-                                                        if hasattr(period_data, 'subject') and hasattr(period_data, 'teacher'):
-                                                            subject_name = period_data.subject
-                                                            teacher_name = period_data.teacher
-                                                            period_num = period_data.period
-                                                            display_text = f"{subject_name} ({teacher_name})"
-                                                        else:
-                                                            subject_str = str(period_data)
-                                                            if '\n' in subject_str:
-                                                                subject_str = subject_str.split('\n')[0]
-                                                            period_num = schedule_html.count('period-item') + 1
-                                                            display_text = subject_str
-                                                        
-                                                        schedule_html += f"<div class='period-item'><strong>{period_num}교시:</strong> {display_text}</div>"
-                                                
-                                                st.markdown(schedule_html, unsafe_allow_html=True)
-                                            else:
-                                                st.info("시간표 없음")
-                                        else:
-                                            st.info("시간표 없음")
-                                    except Exception as e:
-                                        st.warning(f"데이터 오류")
-                                    
-                                    st.markdown("</div>", unsafe_allow_html=True)
-                
-                except Exception as e:
-                    st.error(f"시간표 표시 오류: {str(e)}")
-            
-            # 급식 영역
-            with col_meal:
-                st.markdown(f"<div class='content-box'><h2 style='color: #ff6b6b;'>{days[tab_idx]} 급식</h2></div>", 
-                           unsafe_allow_html=True)
-                
-                day_info = meal_data.get(day_key, {})
-                meals = day_info.get("meals", {})
-                date_str = day_info.get("date", "")
-                
-                if date_str:
-                    st.markdown(f"<p style='text-align: center; color: #999; font-size: 0.9em;'>{date_str}</p>", 
-                              unsafe_allow_html=True)
-                
-                if meals:
-                    meal_types = {
-                        "breakfast": ("🌅 조식", "#ffd93d"),
-                        "lunch": ("☀️ 중식", "#ff6b6b"),
-                        "dinner": ("🌙 석식", "#6c5ce7")
-                    }
-                    
-                    for meal_type, (meal_label, meal_color) in meal_types.items():
-                        if meal_type in meals:
-                            meal_info = meals[meal_type]
-                            menu = meal_info.get("menu", "")
-                            calories = meal_info.get("calories", "")
-                            
-                            st.markdown(f"""
-                            <div class="meal-box" style="border-left-color: {meal_color};">
-                                <div class="meal-header" style="color: {meal_color};">{meal_label}</div>
-                                <div class="meal-menu">{menu}</div>
-                                {f'<p style="color: #888; margin-top: 10px;">🔥 {calories}</p>' if calories else ''}
-                            </div>
-                            """, unsafe_allow_html=True)
-                else:
-                    st.info("급식 정보 없음")
+    # 선택된 날짜의 상세 정보
+    if st.session_state.selected_date:
+        show_date_details(
+            st.session_state.selected_date,
+            st.session_state.timetable,
+            st.session_state.meal_data,
+            st.session_state.grade
+        )
 
 else:
     # 초기 로딩 안내
@@ -286,7 +460,7 @@ else:
             <strong>"🔄 새로고침"</strong> 버튼을 클릭하세요.
         </p>
         <p style='color: #999;'>
-            💡 시간표와 급식 정보가 자동으로 표시됩니다.
+            💡 달력에서 시간표와 급식을 확인할 수 있습니다.
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -298,6 +472,3 @@ st.markdown("""
     <p>📚 <strong>학교 현황판</strong> | Powered by pycomcigan & NEIS API</p>
 </div>
 """, unsafe_allow_html=True)
-
-# 자동 새로고침 (10분마다)
-time.sleep(0.1)
