@@ -481,26 +481,8 @@ if st.session_state.timetable:
         st.markdown("<div class='content-card'>", unsafe_allow_html=True)
         st.markdown("<div class='card-title'>급식</div>", unsafe_allow_html=True)
         
-        # 디버깅 정보
         day_key = current_date.day
-        st.write(f"**디버깅 정보**")
-        st.write(f"- 현재 날짜: {current_date.strftime('%Y년 %m월 %d일')}")
-        st.write(f"- 찾는 키: {day_key} (타입: {type(day_key).__name__})")
-        st.write(f"- meal_data 존재: {st.session_state.meal_data is not None}")
         
-        if st.session_state.meal_data:
-            available_dates = sorted(list(st.session_state.meal_data.keys()))
-            st.write(f"- 사용 가능한 날짜 키: {available_dates}")
-            st.write(f"- 첫 번째 키 타입: {type(available_dates[0]).__name__ if available_dates else 'N/A'}")
-            st.write(f"- 키 매칭: {day_key in st.session_state.meal_data}")
-            
-            if day_key in st.session_state.meal_data:
-                meal_keys = list(st.session_state.meal_data[day_key].keys())
-                st.write(f"- 이 날짜의 급식 종류: {meal_keys}")
-        
-        st.markdown("---")
-        
-        # 날짜 키를 정수형으로 변환 (meal_data의 키가 정수형이므로)
         if st.session_state.meal_data and day_key in st.session_state.meal_data:
             meals = st.session_state.meal_data[day_key]
             
