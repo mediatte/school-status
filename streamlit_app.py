@@ -412,21 +412,14 @@ if st.session_state.timetable:
         st.markdown("<div class='content-card'>", unsafe_allow_html=True)
         st.markdown("<div class='card-title'>급식</div>", unsafe_allow_html=True)
         
-        # 디버깅
-        st.write(f"현재 날짜: {current_date.strftime('%Y-%m-%d')}")
-        st.write(f"day_key (문자열): '{str(current_date.day)}'")
-        st.write(f"meal_data 있음?: {st.session_state.meal_data is not None}")
-        if st.session_state.meal_data:
-            st.write(f"meal_data의 키들: {list(st.session_state.meal_data.keys())}")
-        
-        # 날짜 키를 문자열로 변환하여 확인
-        day_key = str(current_date.day)
+        # 날짜 키를 정수형으로 변환 (meal_data의 키가 정수형이므로)
+        day_key = current_date.day
         
         if st.session_state.meal_data and day_key in st.session_state.meal_data:
             meals = st.session_state.meal_data[day_key]
             
+            # 중식과 석식만 표시
             meal_types = {
-                "breakfast": ("조식", "#ffd93d"),
                 "lunch": ("중식", "#ff6b6b"),
                 "dinner": ("석식", "#6c5ce7")
             }
@@ -440,10 +433,13 @@ if st.session_state.timetable:
                     
                     if menu:
                         meal_displayed = True
+                        # 메뉴 정리 (줄바꿈과 공백 정리)
+                        clean_menu = menu.strip().replace('\n', '<br>')
+                        
                         st.markdown(f"""
-                        <div class='meal-card'>
-                            <div class='meal-type'>{meal_label}</div>
-                            <div class='meal-menu'>{menu.replace(chr(10), '<br>')}</div>
+                        <div class='meal-card' style='border-left-color: {meal_color};'>
+                            <div class='meal-type' style='color: {meal_color};'>{meal_label}</div>
+                            <div class='meal-menu'>{clean_menu}</div>
                             {f"<div class='meal-info'>{calories}</div>" if calories else ""}
                         </div>
                         """, unsafe_allow_html=True)
