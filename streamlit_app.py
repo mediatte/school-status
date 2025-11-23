@@ -253,9 +253,11 @@ def load_meals_monthly(school_name, year, month):
             school = schools[0]
             school_code = school.get("SD_SCHUL_CODE", "")
             atpt_code = school.get("ATPT_OFCDC_SC_CODE", "")
-            return neis_api.get_meal(school_code, atpt_code, year, month)
+            meal_data = neis_api.get_meal(school_code, atpt_code, year, month)
+            return meal_data
         return None
-    except:
+    except Exception as e:
+        st.error(f"급식 데이터 로드 오류: {str(e)}")
         return None
 
 # 타이틀
@@ -412,39 +414,57 @@ if st.session_state.timetable:
         st.markdown("<div class='content-card'>", unsafe_allow_html=True)
         st.markdown("<div class='card-title'>급식</div>", unsafe_allow_html=True)
         
-        # 날짜 키를 정수형으로 변환 (meal_data의 키가 정수형이므로)
+        # 디버깅 정보
         day_key = current_date.day
+        st.write(f"**디버깅 정보**")
+        st.write(f"- 현재 날짜: {current_date.strftime('%Y년 %m월 %d일')}")
+        st.write(f"- 찾는 키: {day_key} (타입: {type(day_key).__name__})")
+        st.write(f"- meal_data 존재: {st.session_state.meal_data is not None}")
         
+        if st.session_state.meal_data:
+            available_dates = sorted(list(st.session_state.meal_data.keys()))
+            st.write(f"- 사용 가능한 날짜 키: {available_dates}")
+            st.write(f"- 첫 번째 키 타입: {type(available_dates[0]).__name__ if available_dates else 'N/A'}")
+            st.write(f"- 키 매칭: {day_key in st.session_state.meal_data}")
+            
+            if day_key in st.session_state.meal_data:
+                meal_keys = list(st.session_state.meal_data[day_key].keys())
+                st.write(f"- 이 날짜의 급식 종류: {meal_keys}")
+        
+        st.markdown("---")
+        
+        # 날짜 키를 정수형으로 변환 (meal_data의 키가 정수형이므로)
         if st.session_state.meal_data and day_key in st.session_state.meal_data:
             meals = st.session_state.meal_data[day_key]
             
-            # 중식과 석식만 표시
-            meal_types = {
-                "lunch": ("중식", "#ff6b6b"),
-                "dinner": ("석식", "#6c5ce7")
-            }
+            # 중식과 석식 표시
+            meal_types = [
+                ("lunch", "중식", "#ff6b6b"),
+                ("dinner", "석식", "#6c5ce7")
+            ]
             
-            meal_displayed = False
-            for meal_type, (meal_label, meal_color) in meal_types.items():
+            meal_html = ""
+            for meal_type, meal_label, meal_color in meal_types:
                 if meal_type in meals:
                     meal_info = meals[meal_type]
                     menu = meal_info.get("menu", "")
                     calories = meal_info.get("calories", "")
                     
                     if menu:
-                        meal_displayed = True
                         # 메뉴 정리 (줄바꿈과 공백 정리)
                         clean_menu = menu.strip().replace('\n', '<br>')
                         
-                        st.markdown(f"""
+                        meal_html += f"""
                         <div class='meal-card' style='border-left-color: {meal_color};'>
                             <div class='meal-type' style='color: {meal_color};'>{meal_label}</div>
                             <div class='meal-menu'>{clean_menu}</div>
                             {f"<div class='meal-info'>{calories}</div>" if calories else ""}
                         </div>
-                        """, unsafe_allow_html=True)
+                        """
             
-            if not meal_displayed:
+            if meal_html:
+                st.markdown(meal_html, unsafe_allow_html=True)
+            else:
                 st.markdown("<div class='meal-card'><div class='meal-menu'>급식 정보가 없습니다</div></div>", 
                            unsafe_allow_html=True)
         else:
