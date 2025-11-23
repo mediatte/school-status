@@ -412,8 +412,15 @@ if st.session_state.timetable:
         st.markdown("<div class='content-card'>", unsafe_allow_html=True)
         st.markdown("<div class='card-title'>급식</div>", unsafe_allow_html=True)
         
+        # 디버깅 정보
+        st.write("DEBUG - meal_data:", st.session_state.meal_data)
+        st.write("DEBUG - current_date.day:", current_date.day)
+        if st.session_state.meal_data:
+            st.write("DEBUG - meal_data keys:", st.session_state.meal_data.keys())
+        
         if st.session_state.meal_data and current_date.day in st.session_state.meal_data:
             meals = st.session_state.meal_data[current_date.day]
+            st.write("DEBUG - meals for this day:", meals)
             
             meal_types = {
                 "breakfast": ("조식", "#ffd93d"),
