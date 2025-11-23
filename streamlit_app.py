@@ -370,12 +370,12 @@ if st.session_state.timetable:
                                     teacher = period_data.teacher
                                     period_num = period_data.period
                                     
-                                    schedule_html += f"""
-                                    <div class='period-item'>
-                                        <span class='subject'>{period_num}교시: {subject}</span><br>
-                                        <span class='teacher'>👨‍🏫 {teacher}</span>
-                                    </div>
-                                    """
+                                    # 7교시까지만 표시하고 빈 교시는 제외
+                                    if period_num <= 7 and subject.strip():
+                                        schedule_html += f"<div class='period-item'>"
+                                        schedule_html += f"<span class='subject'>{period_num}교시: {subject}</span><br>"
+                                        schedule_html += f"<span class='teacher'>👨‍🏫 {teacher}</span>"
+                                        schedule_html += f"</div>"
                             
                             schedule_html += "</div>"
                             st.markdown(schedule_html, unsafe_allow_html=True)
