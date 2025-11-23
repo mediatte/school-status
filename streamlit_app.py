@@ -163,19 +163,28 @@ if st.session_state.timetable and st.session_state.meal_data:
     days = ["월요일", "화요일", "수요일", "목요일", "금요일"]
     day_keys = ["월", "화", "수", "목", "금"]
     
-    tabs = st.tabs(days)
+    # 이번 주 날짜 계산
+    from datetime import timedelta
+    today = datetime.now()
+    weekday = today.weekday()  # 0=월요일
+    monday = today - timedelta(days=weekday)
+    week_dates = [monday + timedelta(days=i) for i in range(5)]
+    
+    tabs = st.tabs([f"{day} ({date.strftime('%m/%d')})" for day, date in zip(days, week_dates)])
     
     timetable = st.session_state.timetable
     meal_data = st.session_state.meal_data
     
-    for day_idx, (tab, day_key) in enumerate(zip(tabs, day_keys)):
+    # pycomcigan 인덱스: 0=비어있음, 1=월요일, 2=화요일, ...
+    for tab_idx, (tab, day_key, date) in enumerate(zip(tabs, day_keys, week_dates)):
         with tab:
+            day_idx = tab_idx + 1  # pycomcigan 인덱스 조정
             # 2열 레이아웃: 시간표 | 급식
             col_timetable, col_meal = st.columns([3, 1])
             
             # 시간표 영역
             with col_timetable:
-                st.markdown(f"<div class='content-box'><h2 style='color: #667eea;'>{days[day_idx]} 시간표</h2></div>", 
+                st.markdown(f"<div class='content-box'><h2 style='color: #667eea;'>{days[tab_idx]} 시간표</h2></div>", 
                            unsafe_allow_html=True)
                 
                 try:
@@ -201,12 +210,22 @@ if st.session_state.timetable and st.session_state.meal_data:
                                             
                                             if day_schedule:
                                                 schedule_html = ""
-                                                for period_idx, subject in enumerate(day_schedule, start=1):
-                                                    subject_str = str(subject) if subject else "-"
-                                                    if '\n' in subject_str:
-                                                        subject_str = subject_str.split('\n')[0]
-                                                    
-                                                    schedule_html += f"<div class='period-item'><strong>{period_idx}교시:</strong> {subject_str}</div>"
+                                                for period_data in day_schedule:
+                                                    if period_data:
+                                                        # TimeTableData 객체에서 정보 추출
+                                                        if hasattr(period_data, 'subject') and hasattr(period_data, 'teacher'):
+                                                            subject_name = period_data.subject
+                                                            teacher_name = period_data.teacher
+                                                            period_num = period_data.period
+                                                            display_text = f"{subject_name} ({teacher_name})"
+                                                        else:
+                                                            subject_str = str(period_data)
+                                                            if '\n' in subject_str:
+                                                                subject_str = subject_str.split('\n')[0]
+                                                            period_num = schedule_html.count('period-item') + 1
+                                                            display_text = subject_str
+                                                        
+                                                        schedule_html += f"<div class='period-item'><strong>{period_num}교시:</strong> {display_text}</div>"
                                                 
                                                 st.markdown(schedule_html, unsafe_allow_html=True)
                                             else:
@@ -223,7 +242,7 @@ if st.session_state.timetable and st.session_state.meal_data:
             
             # 급식 영역
             with col_meal:
-                st.markdown(f"<div class='content-box'><h2 style='color: #ff6b6b;'>{days[day_idx]} 급식</h2></div>", 
+                st.markdown(f"<div class='content-box'><h2 style='color: #ff6b6b;'>{days[tab_idx]} 급식</h2></div>", 
                            unsafe_allow_html=True)
                 
                 day_info = meal_data.get(day_key, {})
