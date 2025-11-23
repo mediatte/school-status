@@ -1,166 +1,205 @@
 import streamlit as st
 import pycomcigan
 from datetime import datetime, timedelta
-import time
 from neis_meal import NeisAPI
 import re
-import calendar
 
 # 페이지 설정
 st.set_page_config(
     page_title="학교 현황",
     page_icon="📚",
-    layout="wide",
+    layout="centered",
     initial_sidebar_state="collapsed"
 )
 
-# 커스텀 CSS - 9:16 모바일 최적화
+# 커스텀 CSS - 검은 배경 깔끔한 디자인
 st.markdown("""
 <style>
+    /* 메인 배경 */
     .main {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        max-width: 100%;
-        padding: 10px;
+        background-color: #000000;
+        padding: 20px 10px;
     }
     .stApp {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background-color: #000000;
     }
+    
+    /* 타이틀 */
     .main-title {
         text-align: center;
-        color: white;
-        font-size: clamp(1.3rem, 4vw, 2rem);
+        color: #ffffff;
+        font-size: 1.8rem;
         font-weight: bold;
-        margin: 10px 0;
-        white-space: nowrap;
+        margin: 20px 0;
+        letter-spacing: 2px;
     }
-    .mini-calendar {
-        background: white;
-        padding: 10px;
-        border-radius: 10px;
-        margin: 10px 0;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    }
-    .mini-cal-header {
-        text-align: center;
-        font-weight: bold;
-        color: #667eea;
-        margin-bottom: 8px;
-        font-size: 0.9em;
-    }
-    .mini-cal-grid {
-        display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        gap: 3px;
-        font-size: 0.75em;
-    }
-    .mini-day {
-        text-align: center;
-        padding: 4px 2px;
-        cursor: pointer;
-        border-radius: 4px;
-        transition: all 0.2s;
-    }
-    .mini-day:hover {
-        background: #e7f5ff;
-    }
-    .mini-day.today {
-        background: #667eea;
-        color: white;
-        font-weight: bold;
-    }
-    .mini-day.selected {
-        background: #ff6b6b;
-        color: white;
-    }
-    .mini-day.weekend {
-        color: #999;
-    }
-    .mini-day.other-month {
-        opacity: 0.3;
-    }
-    .week-container {
-        background: white;
-        padding: 15px;
+    
+    /* 날짜 네비게이션 */
+    .date-nav {
+        background: #1a1a1a;
+        padding: 20px;
         border-radius: 15px;
+        margin: 20px 0;
+        box-shadow: 0 4px 20px rgba(255, 255, 255, 0.05);
+    }
+    
+    .date-display {
+        text-align: center;
+        color: #ffffff;
+        font-size: 1.5rem;
+        font-weight: bold;
         margin: 10px 0;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
-    .day-column {
-        background: #f8f9fa;
-        padding: 10px;
+    
+    .weekday {
+        text-align: center;
+        color: #888888;
+        font-size: 1rem;
+        margin-bottom: 15px;
+    }
+    
+    /* 컨텐츠 카드 */
+    .content-card {
+        background: #1a1a1a;
+        padding: 25px;
+        border-radius: 15px;
+        margin: 15px 0;
+        box-shadow: 0 4px 20px rgba(255, 255, 255, 0.05);
+        border: 1px solid #2a2a2a;
+    }
+    
+    .card-title {
+        color: #ffffff;
+        font-size: 1.3rem;
+        font-weight: bold;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #333333;
+    }
+    
+    /* 시간표 */
+    .timetable-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+        margin-top: 15px;
+    }
+    
+    .class-card {
+        background: #2a2a2a;
+        padding: 15px;
         border-radius: 10px;
-        margin: 5px 0;
-        min-height: 200px;
+        border-left: 3px solid #667eea;
+        transition: all 0.3s;
     }
-    .day-header {
-        text-align: center;
-        font-weight: bold;
+    
+    .class-card:hover {
+        background: #333333;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+    
+    .class-number {
         color: #667eea;
-        font-size: 1em;
-        margin-bottom: 10px;
-        padding-bottom: 8px;
-        border-bottom: 2px solid #667eea;
-    }
-    .day-date {
-        text-align: center;
-        color: #999;
-        font-size: 0.85em;
+        font-size: 1.1rem;
+        font-weight: bold;
         margin-bottom: 10px;
     }
-    .timetable-section {
-        background: white;
-        padding: 8px;
-        border-radius: 8px;
-        margin: 8px 0;
+    
+    .period-item {
+        color: #cccccc;
+        font-size: 0.9rem;
+        padding: 5px 0;
+        border-bottom: 1px solid #3a3a3a;
+        line-height: 1.6;
     }
-    .section-title {
-        color: #667eea;
-        font-size: 0.9em;
-        font-weight: bold;
-        margin-bottom: 5px;
-    }
-    .class-item {
-        font-size: 0.8em;
-        padding: 4px 0;
-        border-bottom: 1px solid #f0f0f0;
-    }
-    .class-item:last-child {
+    
+    .period-item:last-child {
         border-bottom: none;
     }
-    .meal-section {
-        background: #fff5f5;
-        padding: 8px;
-        border-radius: 8px;
-        margin: 8px 0;
+    
+    .subject {
+        color: #ffffff;
+        font-weight: 500;
     }
-    .meal-title {
-        color: #ff6b6b;
-        font-size: 0.9em;
-        font-weight: bold;
-        margin-bottom: 5px;
+    
+    .teacher {
+        color: #888888;
+        font-size: 0.85rem;
     }
-    .meal-menu {
-        font-size: 0.75em;
-        line-height: 1.4;
-        color: #333;
-    }
-    .compact-controls {
-        background: white;
-        padding: 10px;
+    
+    /* 급식 */
+    .meal-card {
+        background: #2a2a2a;
+        padding: 20px;
         border-radius: 10px;
-        margin: 10px 0;
+        margin: 15px 0;
+        border-left: 3px solid #ff6b6b;
     }
-    /* 모바일 최적화 */
-    @media (max-width: 768px) {
-        .main {
-            padding: 5px;
-        }
-        .day-column {
-            padding: 8px;
-        }
-        .class-item {
-            font-size: 0.75em;
-        }
+    
+    .meal-type {
+        color: #ff6b6b;
+        font-size: 1.1rem;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    
+    .meal-menu {
+        color: #cccccc;
+        font-size: 0.95rem;
+        line-height: 1.8;
+    }
+    
+    .meal-info {
+        color: #888888;
+        font-size: 0.85rem;
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid #3a3a3a;
+    }
+    
+    /* 버튼 스타일 */
+    .stButton button {
+        background-color: #2a2a2a;
+        color: #ffffff;
+        border: 1px solid #3a3a3a;
+        border-radius: 10px;
+        padding: 10px 20px;
+        font-weight: 500;
+        transition: all 0.3s;
+    }
+    
+    .stButton button:hover {
+        background-color: #667eea;
+        border-color: #667eea;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    
+    /* 입력 필드 */
+    .stTextInput input, .stSelectbox select {
+        background-color: #2a2a2a;
+        color: #ffffff;
+        border: 1px solid #3a3a3a;
+        border-radius: 10px;
+    }
+    
+    .stTextInput input:focus, .stSelectbox select:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+    }
+    
+    /* 주말 표시 */
+    .weekend-notice {
+        text-align: center;
+        color: #888888;
+        font-size: 1.2rem;
+        padding: 50px 20px;
+    }
+    
+    /* 로딩 */
+    .stSpinner > div {
+        border-color: #667eea transparent transparent transparent;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -170,50 +209,16 @@ if 'school_name' not in st.session_state:
     st.session_state.school_name = "고운고등학교"
 if 'grade' not in st.session_state:
     st.session_state.grade = 1
+if 'current_date' not in st.session_state:
+    st.session_state.current_date = datetime.now()
 if 'timetable' not in st.session_state:
     st.session_state.timetable = None
 if 'meal_data' not in st.session_state:
     st.session_state.meal_data = None
-if 'last_update' not in st.session_state:
-    st.session_state.last_update = None
 if 'initialized' not in st.session_state:
     st.session_state.initialized = False
-if 'selected_week_start' not in st.session_state:
-    # 이번 주 월요일
-    today = datetime.now()
-    weekday = today.weekday()
-    monday = today - timedelta(days=weekday)
-    st.session_state.selected_week_start = monday
-if 'current_month' not in st.session_state:
-    st.session_state.current_month = datetime.now().month
-if 'current_year' not in st.session_state:
-    st.session_state.current_year = datetime.now().year
 
-# 타이틀
-st.markdown("<h1 class='main-title'>📚 학교 현황</h1>", unsafe_allow_html=True)
-
-# 상단 컨트롤
-col1, col2, col3 = st.columns([2, 1, 1])
-with col1:
-    school = st.text_input("학교", value=st.session_state.school_name, 
-                          label_visibility="collapsed",
-                          placeholder="학교명")
-    if school:
-        st.session_state.school_name = school
-
-with col2:
-    grade = st.selectbox("학년", [1, 2, 3], 
-                        index=st.session_state.grade - 1,
-                        label_visibility="collapsed")
-    st.session_state.grade = grade
-
-with col3:
-    if st.button("🔄", use_container_width=True, type="primary", help="새로고침"):
-        st.session_state.initialized = False
-        st.cache_data.clear()
-        st.rerun()
-
-# 데이터 로딩
+# 데이터 로딩 함수
 @st.cache_data(ttl=600)
 def load_timetable(school_name):
     try:
@@ -236,210 +241,198 @@ def load_meals_monthly(school_name, year, month):
     except:
         return None
 
-# 초기 로드
+# 타이틀
+st.markdown("<h1 class='main-title'>📚 학교 현황</h1>", unsafe_allow_html=True)
+
+# 상단 설정
+col1, col2, col3 = st.columns([2, 1, 1])
+with col1:
+    school = st.text_input("학교", value=st.session_state.school_name,
+                          label_visibility="collapsed",
+                          placeholder="학교명을 입력하세요")
+    if school != st.session_state.school_name:
+        st.session_state.school_name = school
+        st.session_state.initialized = False
+
+with col2:
+    grade = st.selectbox("학년", [1, 2, 3],
+                        index=st.session_state.grade - 1,
+                        label_visibility="collapsed")
+    if grade != st.session_state.grade:
+        st.session_state.grade = grade
+
+with col3:
+    if st.button("🔄 새로고침", use_container_width=True):
+        st.session_state.initialized = False
+        st.cache_data.clear()
+        st.rerun()
+
+# 초기 데이터 로드
 if not st.session_state.initialized and st.session_state.school_name:
-    with st.spinner("로딩..."):
+    with st.spinner("데이터를 불러오는 중..."):
         st.session_state.timetable = load_timetable(st.session_state.school_name)
+        current_date = st.session_state.current_date
         st.session_state.meal_data = load_meals_monthly(
             st.session_state.school_name,
-            st.session_state.current_year,
-            st.session_state.current_month
+            current_date.year,
+            current_date.month
         )
-        st.session_state.last_update = datetime.now()
         st.session_state.initialized = True
 
-# 미니 달력 + 주간 네비게이션
-col_cal, col_nav = st.columns([1, 2])
+# 날짜 네비게이션
+st.markdown("<div class='date-nav'>", unsafe_allow_html=True)
 
-with col_cal:
-    # 미니 달력
-    st.markdown("<div class='mini-calendar'>", unsafe_allow_html=True)
-    
-    # 월 선택
-    cal_cols = st.columns([1, 2, 1])
-    with cal_cols[0]:
-        if st.button("◀", key="prev_month"):
-            if st.session_state.current_month == 1:
-                st.session_state.current_month = 12
-                st.session_state.current_year -= 1
-            else:
-                st.session_state.current_month -= 1
-            st.rerun()
-    
-    with cal_cols[1]:
-        st.markdown(f"<div class='mini-cal-header'>{st.session_state.current_year}년 {st.session_state.current_month}월</div>", 
-                   unsafe_allow_html=True)
-    
-    with cal_cols[2]:
-        if st.button("▶", key="next_month"):
-            if st.session_state.current_month == 12:
-                st.session_state.current_month = 1
-                st.session_state.current_year += 1
-            else:
-                st.session_state.current_month += 1
-            st.rerun()
-    
-    # 달력 그리드
-    weekdays = ['일', '월', '화', '수', '목', '금', '토']
-    st.markdown("<div class='mini-cal-grid'>", unsafe_allow_html=True)
-    
-    # 요일 헤더
-    for day in weekdays:
-        st.markdown(f"<div style='text-align: center; font-weight: bold; color: #999;'>{day}</div>", 
-                   unsafe_allow_html=True)
-    
-    # 날짜
-    cal = calendar.monthcalendar(st.session_state.current_year, st.session_state.current_month)
-    today = datetime.now()
-    
-    for week in cal:
-        cols = st.columns(7)
-        for idx, day in enumerate(week):
-            with cols[idx]:
-                if day == 0:
-                    st.write("")
-                else:
-                    date = datetime(st.session_state.current_year, st.session_state.current_month, day)
-                    is_today = date.date() == today.date()
-                    
-                    if st.button(str(day), key=f"cal_{st.session_state.current_year}_{st.session_state.current_month}_{day}",
-                               type="primary" if is_today else "secondary",
-                               use_container_width=True):
-                        # 선택한 날짜의 주 월요일로 이동
-                        weekday = date.weekday()
-                        monday = date - timedelta(days=weekday)
-                        st.session_state.selected_week_start = monday
-                        st.rerun()
-    
-    st.markdown("</div></div>", unsafe_allow_html=True)
+nav_cols = st.columns([1, 3, 1])
 
-with col_nav:
-    # 주간 네비게이션
-    nav_cols = st.columns([1, 3, 1])
-    
-    with nav_cols[0]:
-        if st.button("◀ 이전주", use_container_width=True):
-            st.session_state.selected_week_start -= timedelta(days=7)
-            st.rerun()
-    
-    with nav_cols[1]:
-        week_start = st.session_state.selected_week_start
-        week_end = week_start + timedelta(days=4)
-        st.markdown(f"<div style='text-align: center; color: white; font-weight: bold; padding: 10px;'>"
-                   f"{week_start.strftime('%m/%d')} - {week_end.strftime('%m/%d')}</div>", 
-                   unsafe_allow_html=True)
-    
-    with nav_cols[2]:
-        if st.button("다음주 ▶", use_container_width=True):
-            st.session_state.selected_week_start += timedelta(days=7)
-            st.rerun()
+with nav_cols[0]:
+    if st.button("◀", use_container_width=True, key="prev_day"):
+        st.session_state.current_date -= timedelta(days=1)
+        # 월이 바뀌면 급식 데이터 다시 로드
+        if st.session_state.current_date.month != (st.session_state.current_date + timedelta(days=1)).month:
+            st.session_state.meal_data = load_meals_monthly(
+                st.session_state.school_name,
+                st.session_state.current_date.year,
+                st.session_state.current_date.month
+            )
+        st.rerun()
 
-# 주간 뷰
+with nav_cols[1]:
+    current_date = st.session_state.current_date
+    weekday_names = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일']
+    weekday = current_date.weekday()
+    
+    st.markdown(f"""
+    <div class='weekday'>{weekday_names[weekday]}</div>
+    <div class='date-display'>{current_date.strftime('%Y.%m.%d')}</div>
+    """, unsafe_allow_html=True)
+
+with nav_cols[2]:
+    if st.button("▶", use_container_width=True, key="next_day"):
+        st.session_state.current_date += timedelta(days=1)
+        # 월이 바뀌면 급식 데이터 다시 로드
+        if st.session_state.current_date.month != (st.session_state.current_date - timedelta(days=1)).month:
+            st.session_state.meal_data = load_meals_monthly(
+                st.session_state.school_name,
+                st.session_state.current_date.year,
+                st.session_state.current_date.month
+            )
+        st.rerun()
+
+# 오늘로 돌아가기 버튼
+if st.session_state.current_date.date() != datetime.now().date():
+    if st.button("📍 오늘로 돌아가기", use_container_width=True):
+        st.session_state.current_date = datetime.now()
+        st.rerun()
+
+st.markdown("</div>", unsafe_allow_html=True)
+
+# 메인 컨텐츠
 if st.session_state.timetable:
-    st.markdown("<div class='week-container'>", unsafe_allow_html=True)
+    current_date = st.session_state.current_date
+    weekday = current_date.weekday()
     
-    days = ["월", "화", "수", "목", "금"]
-    cols = st.columns(5)
-    
-    week_start = st.session_state.selected_week_start
-    
-    for day_idx, (col, day_name) in enumerate(zip(cols, days)):
-        with col:
-            date = week_start + timedelta(days=day_idx)
-            tt_day_idx = day_idx + 1  # pycomcigan 인덱스
+    # 주말 체크
+    if weekday >= 5:  # 토요일, 일요일
+        st.markdown("""
+        <div class='content-card'>
+            <div class='weekend-notice'>
+                📅<br><br>
+                주말입니다
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        # 시간표 표시
+        st.markdown("<div class='content-card'>", unsafe_allow_html=True)
+        st.markdown(f"<div class='card-title'>📚 {st.session_state.grade}학년 시간표</div>", unsafe_allow_html=True)
+        
+        tt_day_idx = weekday + 1  # pycomcigan 인덱스 (1=월요일)
+        
+        try:
+            grade_data = st.session_state.timetable.timetable[st.session_state.grade]
+            max_classes = len(grade_data)
             
-            st.markdown(f"""
-            <div class='day-column'>
-                <div class='day-header'>{day_name}</div>
-                <div class='day-date'>{date.strftime('%m/%d')}</div>
-            """, unsafe_allow_html=True)
+            st.markdown("<div class='timetable-grid'>", unsafe_allow_html=True)
             
-            # 시간표 (1반만 대표로 간단하게)
-            try:
-                grade_data = st.session_state.timetable.timetable[st.session_state.grade]
-                if grade_data and len(grade_data) > 1:
-                    class_data = grade_data[1]
+            for class_num in range(1, max_classes):
+                try:
+                    class_data = grade_data[class_num]
                     if tt_day_idx < len(class_data):
                         day_schedule = class_data[tt_day_idx]
                         
                         if day_schedule and len(day_schedule) > 0:
-                            st.markdown("<div class='timetable-section'><div class='section-title'>📚 시간표 (1반)</div>", 
-                                      unsafe_allow_html=True)
+                            schedule_html = f"<div class='class-card'>"
+                            schedule_html += f"<div class='class-number'>{class_num}반</div>"
                             
-                            # 처음 5교시만 표시
-                            for period_data in day_schedule[:5]:
+                            for period_data in day_schedule:
                                 if period_data and hasattr(period_data, 'subject'):
-                                    subject = period_data.subject[:6]
-                                    teacher = period_data.teacher[:4]
-                                    st.markdown(f"<div class='class-item'>{period_data.period}. {subject} ({teacher})</div>", 
-                                              unsafe_allow_html=True)
+                                    subject = period_data.subject
+                                    teacher = period_data.teacher
+                                    period_num = period_data.period
+                                    
+                                    schedule_html += f"""
+                                    <div class='period-item'>
+                                        <span class='subject'>{period_num}교시: {subject}</span><br>
+                                        <span class='teacher'>👨‍🏫 {teacher}</span>
+                                    </div>
+                                    """
                             
-                            st.markdown("</div>", unsafe_allow_html=True)
-            except:
-                pass
-            
-            # 급식
-            if st.session_state.meal_data and date.day in st.session_state.meal_data:
-                meals = st.session_state.meal_data[date.day]
-                
-                if 'lunch' in meals:
-                    lunch = meals['lunch']
-                    menu = lunch.get('menu', '')
-                    # 첫 3개 메뉴만
-                    menu_items = menu.split('\n')[:3]
-                    short_menu = '<br>'.join(menu_items)
-                    
-                    st.markdown(f"""
-                    <div class='meal-section'>
-                        <div class='meal-title'>🍽️ 중식</div>
-                        <div class='meal-menu'>{short_menu}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                            schedule_html += "</div>"
+                            st.markdown(schedule_html, unsafe_allow_html=True)
+                except:
+                    pass
             
             st.markdown("</div>", unsafe_allow_html=True)
-    
-    st.markdown("</div>", unsafe_allow_html=True)
-    
-    # 전체 학년 버튼
-    if st.button("📋 전체 학년 시간표 보기", use_container_width=True):
-        with st.expander("전체 학년 시간표", expanded=True):
-            for day_idx, day_name in enumerate(days):
-                date = week_start + timedelta(days=day_idx)
-                tt_day_idx = day_idx + 1
-                
-                st.markdown(f"### {day_name}요일 ({date.strftime('%m/%d')})")
-                
-                try:
-                    grade_data = st.session_state.timetable.timetable[st.session_state.grade]
-                    max_classes = len(grade_data)
+        except Exception as e:
+            st.error(f"시간표를 불러올 수 없습니다: {str(e)}")
+        
+        st.markdown("</div>", unsafe_allow_html=True)
+        
+        # 급식 표시
+        st.markdown("<div class='content-card'>", unsafe_allow_html=True)
+        st.markdown("<div class='card-title'>🍽️ 급식</div>", unsafe_allow_html=True)
+        
+        if st.session_state.meal_data and current_date.day in st.session_state.meal_data:
+            meals = st.session_state.meal_data[current_date.day]
+            
+            meal_types = {
+                "breakfast": ("🌅 조식", "#ffd93d"),
+                "lunch": ("☀️ 중식", "#ff6b6b"),
+                "dinner": ("🌙 석식", "#6c5ce7")
+            }
+            
+            for meal_type, (meal_label, meal_color) in meal_types.items():
+                if meal_type in meals:
+                    meal_info = meals[meal_type]
+                    menu = meal_info.get("menu", "")
+                    calories = meal_info.get("calories", "")
                     
-                    cols = st.columns(min(4, max_classes - 1))
-                    
-                    for col_idx, col in enumerate(cols):
-                        class_num = col_idx + 1
-                        if class_num < max_classes:
-                            with col:
-                                st.markdown(f"**{class_num}반**")
-                                
-                                try:
-                                    class_data = grade_data[class_num]
-                                    if tt_day_idx < len(class_data):
-                                        day_schedule = class_data[tt_day_idx]
-                                        
-                                        if day_schedule:
-                                            for period_data in day_schedule[:6]:
-                                                if period_data and hasattr(period_data, 'subject'):
-                                                    st.text(f"{period_data.period}. {period_data.subject}")
-                                except:
-                                    st.text("데이터 없음")
-                except:
-                    st.error("시간표를 불러올 수 없습니다")
-                
-                st.divider()
+                    st.markdown(f"""
+                    <div class='meal-card'>
+                        <div class='meal-type'>{meal_label}</div>
+                        <div class='meal-menu'>{menu.replace(chr(10), '<br>')}</div>
+                        {f"<div class='meal-info'>🔥 {calories}</div>" if calories else ""}
+                    </div>
+                    """, unsafe_allow_html=True)
+        else:
+            st.markdown("<div class='meal-card'><div class='meal-menu'>급식 정보가 없습니다</div></div>", 
+                       unsafe_allow_html=True)
+        
+        st.markdown("</div>", unsafe_allow_html=True)
 
 else:
-    st.info("학교명을 입력하고 🔄 버튼을 클릭하세요")
+    st.markdown("""
+    <div class='content-card'>
+        <div style='text-align: center; color: #888888; padding: 50px 20px;'>
+            학교명을 입력하고<br>
+            🔄 새로고침 버튼을 클릭하세요
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
 # 푸터
-st.markdown("<div style='text-align: center; color: white; padding: 10px; font-size: 0.8em;'>📚 학교 현황판</div>", 
-           unsafe_allow_html=True)
+st.markdown("""
+<div style='text-align: center; color: #444444; padding: 30px 10px; font-size: 0.85rem;'>
+    📚 학교 현황판 | pycomcigan & NEIS API
+</div>
+""", unsafe_allow_html=True)
