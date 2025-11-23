@@ -369,7 +369,8 @@ if st.session_state.timetable:
             grade_data = st.session_state.timetable.timetable[st.session_state.grade]
             max_classes = len(grade_data)
             
-            st.markdown("<div class='timetable-grid'>", unsafe_allow_html=True)
+            # 전체 HTML을 하나로 합치기
+            all_html = "<div class='timetable-grid'>"
             
             for class_num in range(1, max_classes):
                 try:
@@ -378,9 +379,9 @@ if st.session_state.timetable:
                         day_schedule = class_data[tt_day_idx]
                         
                         if day_schedule and len(day_schedule) > 0:
-                            schedule_html = "<div class='class-card'>"
-                            schedule_html += f"<div class='class-number'>{class_num}반</div>"
-                            schedule_html += "<table class='schedule-table'>"
+                            all_html += "<div class='class-card'>"
+                            all_html += f"<div class='class-number'>{class_num}반</div>"
+                            all_html += "<table class='schedule-table'>"
                             
                             for period_data in day_schedule:
                                 if period_data and hasattr(period_data, 'subject'):
@@ -390,18 +391,18 @@ if st.session_state.timetable:
                                     
                                     # 7교시까지만 표시하고 빈 교시는 제외
                                     if period_num <= 7 and subject.strip():
-                                        schedule_html += "<tr>"
-                                        schedule_html += f"<td class='period-num'>{period_num}</td>"
-                                        schedule_html += f"<td class='subject-name'>{subject}</td>"
-                                        schedule_html += f"<td class='teacher-name'>{teacher}</td>"
-                                        schedule_html += "</tr>"
+                                        all_html += "<tr>"
+                                        all_html += f"<td class='period-num'>{period_num}</td>"
+                                        all_html += f"<td class='subject-name'>{subject}</td>"
+                                        all_html += f"<td class='teacher-name'>{teacher}</td>"
+                                        all_html += "</tr>"
                             
-                            schedule_html += "</table></div>"
-                            st.markdown(schedule_html, unsafe_allow_html=True)
+                            all_html += "</table></div>"
                 except:
                     pass
             
-            st.markdown("</div>", unsafe_allow_html=True)
+            all_html += "</div>"
+            st.markdown(all_html, unsafe_allow_html=True)
         except Exception as e:
             st.error(f"시간표를 불러올 수 없습니다: {str(e)}")
         
