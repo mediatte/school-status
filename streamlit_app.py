@@ -17,7 +17,7 @@ st.markdown("""
     /* 메인 배경 */
     .main {
         background-color: #000000;
-        padding: 20px 10px;
+        padding: 10px 5px;
     }
     .stApp {
         background-color: #000000;
@@ -27,52 +27,52 @@ st.markdown("""
     .main-title {
         text-align: center;
         color: #ffffff;
-        font-size: 1.8rem;
+        font-size: 1.5rem;
         font-weight: bold;
-        margin: 20px 0;
+        margin: 10px 0;
         letter-spacing: 2px;
     }
     
     /* 날짜 네비게이션 */
     .date-nav {
         background: #1a1a1a;
-        padding: 20px;
-        border-radius: 15px;
-        margin: 20px 0;
+        padding: 12px;
+        border-radius: 12px;
+        margin: 10px 0;
         box-shadow: 0 4px 20px rgba(255, 255, 255, 0.05);
     }
     
     .date-display {
         text-align: center;
         color: #ffffff;
-        font-size: 1.5rem;
+        font-size: 1.2rem;
         font-weight: bold;
-        margin: 10px 0;
+        margin: 6px 0;
     }
     
     .weekday {
         text-align: center;
         color: #888888;
-        font-size: 1rem;
-        margin-bottom: 15px;
+        font-size: 0.9rem;
+        margin-bottom: 8px;
     }
     
     /* 컨텐츠 카드 */
     .content-card {
         background: #1a1a1a;
-        padding: 25px;
-        border-radius: 15px;
-        margin: 15px 0;
+        padding: 15px;
+        border-radius: 12px;
+        margin: 10px 0;
         box-shadow: 0 4px 20px rgba(255, 255, 255, 0.05);
         border: 1px solid #2a2a2a;
     }
     
     .card-title {
         color: #ffffff;
-        font-size: 1.3rem;
+        font-size: 1.1rem;
         font-weight: bold;
-        margin-bottom: 20px;
-        padding-bottom: 15px;
+        margin-bottom: 12px;
+        padding-bottom: 10px;
         border-bottom: 2px solid #333333;
     }
     
@@ -80,17 +80,17 @@ st.markdown("""
     .timetable-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 10px;
-        margin-top: 15px;
+        gap: 8px;
+        margin-top: 10px;
     }
     
     .class-card {
         background: #2a2a2a;
-        padding: 12px;
-        border-radius: 8px;
-        border-left: 3px solid #667eea;
+        padding: 8px;
+        border-radius: 6px;
+        border-left: 2px solid #667eea;
         transition: all 0.3s;
-        font-size: 0.85rem;
+        font-size: 0.7rem;
     }
     
     .class-card:hover {
@@ -101,18 +101,18 @@ st.markdown("""
     
     .class-number {
         color: #667eea;
-        font-size: 0.95rem;
+        font-size: 0.85rem;
         font-weight: bold;
-        margin-bottom: 8px;
-        padding-bottom: 5px;
+        margin-bottom: 6px;
+        padding-bottom: 4px;
         border-bottom: 1px solid #3a3a3a;
     }
     
     .period-item {
         color: #cccccc;
-        font-size: 0.75rem;
-        padding: 3px 0;
-        line-height: 1.4;
+        font-size: 0.65rem;
+        padding: 2px 0;
+        line-height: 1.3;
     }
     
     .subject {
@@ -122,36 +122,37 @@ st.markdown("""
     
     .teacher {
         color: #888888;
-        font-size: 0.7rem;
+        font-size: 0.6rem;
+        margin-left: 2px;
     }
     
     /* 급식 */
     .meal-card {
         background: #2a2a2a;
-        padding: 20px;
-        border-radius: 10px;
-        margin: 15px 0;
-        border-left: 3px solid #ff6b6b;
+        padding: 12px;
+        border-radius: 8px;
+        margin: 8px 0;
+        border-left: 2px solid #ff6b6b;
     }
     
     .meal-type {
         color: #ff6b6b;
-        font-size: 1.1rem;
+        font-size: 0.9rem;
         font-weight: bold;
-        margin-bottom: 10px;
+        margin-bottom: 6px;
     }
     
     .meal-menu {
         color: #cccccc;
-        font-size: 0.95rem;
-        line-height: 1.8;
+        font-size: 0.75rem;
+        line-height: 1.5;
     }
     
     .meal-info {
         color: #888888;
-        font-size: 0.85rem;
-        margin-top: 10px;
-        padding-top: 10px;
+        font-size: 0.7rem;
+        margin-top: 6px;
+        padding-top: 6px;
         border-top: 1px solid #3a3a3a;
     }
     
@@ -160,9 +161,10 @@ st.markdown("""
         background-color: #2a2a2a;
         color: #ffffff;
         border: 1px solid #3a3a3a;
-        border-radius: 10px;
-        padding: 10px 20px;
+        border-radius: 8px;
+        padding: 6px 12px;
         font-weight: 500;
+        font-size: 0.85rem;
         transition: all 0.3s;
     }
     
@@ -370,8 +372,8 @@ if st.session_state.timetable:
                                     # 7교시까지만 표시하고 빈 교시는 제외
                                     if period_num <= 7 and subject.strip():
                                         schedule_html += f"<div class='period-item'>"
-                                        schedule_html += f"<span class='subject'>{period_num}. {subject}</span><br>"
-                                        schedule_html += f"<span class='teacher'>{teacher}</span>"
+                                        schedule_html += f"<span class='subject'>{period_num}. {subject}</span> "
+                                        schedule_html += f"<span class='teacher'>({teacher})</span>"
                                         schedule_html += f"</div>"
                             
                             schedule_html += "</div>"
