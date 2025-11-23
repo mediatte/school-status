@@ -7,7 +7,6 @@ import re
 # 페이지 설정
 st.set_page_config(
     page_title="학교 현황",
-    page_icon="📚",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
@@ -80,17 +79,18 @@ st.markdown("""
     /* 시간표 */
     .timetable-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 15px;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
         margin-top: 15px;
     }
     
     .class-card {
         background: #2a2a2a;
-        padding: 15px;
-        border-radius: 10px;
+        padding: 12px;
+        border-radius: 8px;
         border-left: 3px solid #667eea;
         transition: all 0.3s;
+        font-size: 0.85rem;
     }
     
     .class-card:hover {
@@ -101,21 +101,18 @@ st.markdown("""
     
     .class-number {
         color: #667eea;
-        font-size: 1.1rem;
+        font-size: 0.95rem;
         font-weight: bold;
-        margin-bottom: 10px;
+        margin-bottom: 8px;
+        padding-bottom: 5px;
+        border-bottom: 1px solid #3a3a3a;
     }
     
     .period-item {
         color: #cccccc;
-        font-size: 0.9rem;
-        padding: 5px 0;
-        border-bottom: 1px solid #3a3a3a;
-        line-height: 1.6;
-    }
-    
-    .period-item:last-child {
-        border-bottom: none;
+        font-size: 0.75rem;
+        padding: 3px 0;
+        line-height: 1.4;
     }
     
     .subject {
@@ -125,7 +122,7 @@ st.markdown("""
     
     .teacher {
         color: #888888;
-        font-size: 0.85rem;
+        font-size: 0.7rem;
     }
     
     /* 급식 */
@@ -242,7 +239,7 @@ def load_meals_monthly(school_name, year, month):
         return None
 
 # 타이틀
-st.markdown("<h1 class='main-title'>📚 학교 현황</h1>", unsafe_allow_html=True)
+st.markdown("<h1 class='main-title'>학교 현황</h1>", unsafe_allow_html=True)
 
 # 상단 설정
 col1, col2, col3 = st.columns([2, 1, 1])
@@ -344,7 +341,7 @@ if st.session_state.timetable:
     else:
         # 시간표 표시
         st.markdown("<div class='content-card'>", unsafe_allow_html=True)
-        st.markdown(f"<div class='card-title'>📚 {st.session_state.grade}학년 시간표</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='card-title'>{st.session_state.grade}학년 시간표</div>", unsafe_allow_html=True)
         
         tt_day_idx = weekday + 1  # pycomcigan 인덱스 (1=월요일)
         
@@ -373,8 +370,8 @@ if st.session_state.timetable:
                                     # 7교시까지만 표시하고 빈 교시는 제외
                                     if period_num <= 7 and subject.strip():
                                         schedule_html += f"<div class='period-item'>"
-                                        schedule_html += f"<span class='subject'>{period_num}교시: {subject}</span><br>"
-                                        schedule_html += f"<span class='teacher'>👨‍🏫 {teacher}</span>"
+                                        schedule_html += f"<span class='subject'>{period_num}. {subject}</span><br>"
+                                        schedule_html += f"<span class='teacher'>{teacher}</span>"
                                         schedule_html += f"</div>"
                             
                             schedule_html += "</div>"
@@ -390,15 +387,15 @@ if st.session_state.timetable:
         
         # 급식 표시
         st.markdown("<div class='content-card'>", unsafe_allow_html=True)
-        st.markdown("<div class='card-title'>🍽️ 급식</div>", unsafe_allow_html=True)
+        st.markdown("<div class='card-title'>급식</div>", unsafe_allow_html=True)
         
         if st.session_state.meal_data and current_date.day in st.session_state.meal_data:
             meals = st.session_state.meal_data[current_date.day]
             
             meal_types = {
-                "breakfast": ("🌅 조식", "#ffd93d"),
-                "lunch": ("☀️ 중식", "#ff6b6b"),
-                "dinner": ("🌙 석식", "#6c5ce7")
+                "breakfast": ("조식", "#ffd93d"),
+                "lunch": ("중식", "#ff6b6b"),
+                "dinner": ("석식", "#6c5ce7")
             }
             
             for meal_type, (meal_label, meal_color) in meal_types.items():
