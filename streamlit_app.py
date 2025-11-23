@@ -2,6 +2,7 @@ import streamlit as st
 import pycomcigan
 from datetime import datetime, timedelta
 import re
+import asyncio
 from neispy import Neispy
 
 # 페이지 설정
@@ -243,74 +244,85 @@ def load_timetable(school_name):
     except:
         return None
 
+async def _load_meals_async(school_name, year, month):
+    """비동기 급식 데이터 로드 함수"""
+    neis = Neispy()
+    clean_name = re.sub(r'\s*\([^)]*\)', '', school_name).strip()
+    
+    # 학교 정보 검색
+    school_info = await neis.schoolInfo(SCHUL_NM=clean_name)
+    if not school_info or not school_info.schoolInfo or len(school_info.schoolInfo) < 2:
+        return None
+    
+    rows = school_info.schoolInfo[1].row
+    if not rows or len(rows) == 0:
+        return None
+    
+    school = rows[0]
+    atpt_code = school.ATPT_OFCDC_SC_CODE
+    school_code = school.SD_SCHUL_CODE
+    
+    # 해당 월의 모든 날짜에 대해 급식 정보 가져오기
+    meal_data = {}
+    
+    # 해당 월의 마지막 날 계산
+    if month == 12:
+        next_month = datetime(year + 1, 1, 1)
+    else:
+        next_month = datetime(year, month + 1, 1)
+    last_day = (next_month - timedelta(days=1)).day
+    
+    # 각 날짜별로 급식 정보 요청
+    for day in range(1, last_day + 1):
+        try:
+            date_str = f"{year}{month:02d}{day:02d}"
+            meal_response = await neis.mealServiceDietInfo(
+                ATPT_OFCDC_SC_CODE=atpt_code,
+                SD_SCHUL_CODE=school_code,
+                MLSV_YMD=date_str
+            )
+            
+            if meal_response and meal_response.mealServiceDietInfo and len(meal_response.mealServiceDietInfo) >= 2:
+                rows = meal_response.mealServiceDietInfo[1].row
+                
+                day_meals = {}
+                for meal_row in rows:
+                    # 급식 유형 확인 (2: 중식, 3: 석식)
+                    meal_type_code = meal_row.MMEAL_SC_CODE
+                    
+                    menu = meal_row.DDISH_NM.replace("<br/>", "\n")
+                    calories = getattr(meal_row, 'CAL_INFO', '')
+                    
+                    if meal_type_code == "2":
+                        day_meals["lunch"] = {
+                            "menu": menu,
+                            "calories": calories
+                        }
+                    elif meal_type_code == "3":
+                        day_meals["dinner"] = {
+                            "menu": menu,
+                            "calories": calories
+                        }
+                
+                if day_meals:
+                    meal_data[day] = day_meals
+        except:
+            continue
+    
+    return meal_data if meal_data else None
+
 @st.cache_data(ttl=600)
 def load_meals_monthly(school_name, year, month):
+    """동기 래퍼 함수 - asyncio를 사용하여 비동기 함수 실행"""
     try:
-        neis = Neispy.sync()
-        clean_name = re.sub(r'\s*\([^)]*\)', '', school_name).strip()
-        
-        # 학교 정보 검색
-        school_info = neis.schoolInfo(SCHUL_NM=clean_name)
-        if not school_info or not school_info.schoolInfo or len(school_info.schoolInfo) < 2:
-            return None
-        
-        rows = school_info.schoolInfo[1].row
-        if not rows or len(rows) == 0:
-            return None
-        
-        school = rows[0]
-        atpt_code = school.ATPT_OFCDC_SC_CODE
-        school_code = school.SD_SCHUL_CODE
-        
-        # 해당 월의 모든 날짜에 대해 급식 정보 가져오기
-        meal_data = {}
-        
-        # 해당 월의 마지막 날 계산
-        if month == 12:
-            next_month = datetime(year + 1, 1, 1)
-        else:
-            next_month = datetime(year, month + 1, 1)
-        last_day = (next_month - timedelta(days=1)).day
-        
-        # 각 날짜별로 급식 정보 요청
-        for day in range(1, last_day + 1):
-            try:
-                date_str = f"{year}{month:02d}{day:02d}"
-                meal_response = neis.mealServiceDietInfo(
-                    ATPT_OFCDC_SC_CODE=atpt_code,
-                    SD_SCHUL_CODE=school_code,
-                    MLSV_YMD=date_str
-                )
-                
-                if meal_response and meal_response.mealServiceDietInfo and len(meal_response.mealServiceDietInfo) >= 2:
-                    rows = meal_response.mealServiceDietInfo[1].row
-                    
-                    day_meals = {}
-                    for meal_row in rows:
-                        # 급식 유형 확인 (2: 중식, 3: 석식)
-                        meal_type_code = meal_row.MMEAL_SC_CODE
-                        
-                        menu = meal_row.DDISH_NM.replace("<br/>", "\n")
-                        calories = getattr(meal_row, 'CAL_INFO', '')
-                        
-                        if meal_type_code == "2":
-                            day_meals["lunch"] = {
-                                "menu": menu,
-                                "calories": calories
-                            }
-                        elif meal_type_code == "3":
-                            day_meals["dinner"] = {
-                                "menu": menu,
-                                "calories": calories
-                            }
-                    
-                    if day_meals:
-                        meal_data[day] = day_meals
-            except:
-                continue
-        
-        return meal_data if meal_data else None
-        
+        # 새로운 이벤트 루프 생성 및 실행
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            result = loop.run_until_complete(_load_meals_async(school_name, year, month))
+            return result
+        finally:
+            loop.close()
     except Exception as e:
         st.error(f"급식 데이터 로드 오류: {str(e)}")
         return None
