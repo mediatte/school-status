@@ -222,11 +222,19 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# URL 쿼리 파라미터 읽기
+query_params = st.query_params
+
 # 세션 상태 초기화
 if 'school_name' not in st.session_state:
-    st.session_state.school_name = "고운고등학교"
+    # URL에서 school 파라미터가 있으면 사용, 없으면 기본값
+    st.session_state.school_name = query_params.get("school", "고운고등학교")
 if 'grade' not in st.session_state:
-    st.session_state.grade = 1
+    # URL에서 grade 파라미터가 있으면 사용, 없으면 기본값
+    try:
+        st.session_state.grade = int(query_params.get("grade", 1))
+    except:
+        st.session_state.grade = 1
 if 'current_date' not in st.session_state:
     st.session_state.current_date = datetime.now()
 if 'timetable' not in st.session_state:
@@ -235,6 +243,12 @@ if 'meal_data' not in st.session_state:
     st.session_state.meal_data = None
 if 'initialized' not in st.session_state:
     st.session_state.initialized = False
+
+# 초기 URL 파라미터 설정 (URL에 파라미터가 없을 경우)
+if "school" not in query_params:
+    st.query_params["school"] = st.session_state.school_name
+if "grade" not in query_params:
+    st.query_params["grade"] = str(st.session_state.grade)
 
 # 데이터 로딩 함수
 @st.cache_data(ttl=600)
@@ -339,6 +353,8 @@ with col1:
     if school != st.session_state.school_name:
         st.session_state.school_name = school
         st.session_state.initialized = False
+        # URL 파라미터 업데이트
+        st.query_params["school"] = school
 
 with col2:
     grade = st.selectbox("학년", [1, 2, 3],
@@ -346,6 +362,8 @@ with col2:
                         label_visibility="collapsed")
     if grade != st.session_state.grade:
         st.session_state.grade = grade
+        # URL 파라미터 업데이트
+        st.query_params["grade"] = str(grade)
 
 with col3:
     if st.button("🔄 새로고침", use_container_width=True):
